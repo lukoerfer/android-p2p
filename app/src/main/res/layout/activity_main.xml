@@ -6,11 +6,23 @@
     android:orientation="vertical"
     tools:context="de.lukaskoerfer.androidp2p.MainActivity">
 
+    <TextView
+        android:id="@+id/lblInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp" />
+
     <Button
         android:id="@+id/btnSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Search devices" />
+
+    <Button
+        android:id="@+id/btnTest"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Send message" />
 
     <ListView
         android:id="@+id/listDevices"

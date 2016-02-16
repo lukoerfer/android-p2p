@@ -4,16 +4,21 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConnectionService extends Service {
 
@@ -22,23 +27,38 @@ public class ConnectionService extends Service {
 
     private NotificationManager notificationManager;
 
+    private boolean IsStarted = false;
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         this.notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        String address = intent.getStringExtra("CONN_ADDRESS");
-        boolean isServer = intent.getBooleanExtra("CONN_IS_SERVER", true);
-        startNotification(isServer, address);
-        if (isServer) {
-            openServer(address);
-        } else {
-            connectToServer(address);
+        String action = intent.getStringExtra("ACTION");
+        switch (action) {
+            case "START":
+                if (!IsStarted) {
+                    IsStarted = true;
+                    boolean isServer = intent.getBooleanExtra("IS_SERVER", false);
+                    if (!isServer) {
+                        String ip = intent.getStringExtra("IP");
+                        connectToServer(ip);
+                    } else {
+                        openServer();
+                    }
+                }
+                break;
+            case "SEND":
+                if (IsStarted) {
+                    String message = intent.getStringExtra("MESSAGE");
+                } else {
+                    Toast.makeText(this, "Not connected!", Toast.LENGTH_SHORT).show();
+                }
+                break;
         }
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        this.networkThread.stop();
         this.stopNotification();
         super.onDestroy();
     }
@@ -49,57 +69,79 @@ public class ConnectionService extends Service {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    private Thread networkThread;
+    private Thread mainThread;
+    private Socket mainSocket;
 
-    private void openServer(final String address) {
-        this.networkThread = new Thread(new Runnable() {
+    private List<Thread> clientThreads;
+    private List<Socket> clientSockets;
+
+    private void openServer() {
+        this.mainThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    ServerSocket server = new ServerSocket(8000);
-                    Socket client = server.accept();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                    ServerSocket serverSocket = new ServerSocket(8000);
                     while (true) {
-                        Toast.makeText(ConnectionService.this, in.readLine(), Toast.LENGTH_SHORT).show();
+                        final Socket clientSocket = serverSocket.accept();
+                        ConnectionService.this.clientSockets.add(clientSocket);
+                        Thread clientThread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                                    while (true) {
+                                        receiveMessage(in.readLine());
+                                    }
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                }
+                            }
+                        });
+                        clientThread.start();
+                        ConnectionService.this.clientThreads.add(clientThread);
                     }
                 } catch (Exception ex) {
-                    Toast.makeText(ConnectionService.this, ex.getMessage(), Toast.LENGTH_SHORT).show();
+                    ex.printStackTrace();
                 }
             }
         });
-        this.networkThread.start();
+        this.mainThread.start();
     }
 
     private void connectToServer(final String address) {
-        this.networkThread = new Thread(new Runnable() {
+        this.mainThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Socket client = new Socket(address, 8000);
-                    PrintWriter out = new PrintWriter(client.getOutputStream(), true);
-                    int counter = 1;
+                    Socket clientSocket = new Socket(address, 8000);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                     while (true) {
-                        out.println("Message " + String.valueOf(counter));
-                        Thread.sleep(5000);
+                        receiveMessage(in.readLine());
                     }
                 } catch (Exception ex) {
-                    Toast.makeText(ConnectionService.this, ex.getMessage(), Toast.LENGTH_SHORT).show();
+                    ex.printStackTrace();
                 }
             }
         });
-        this.networkThread.start();
+        this.mainThread.start();
     }
 
-    private void startNotification(boolean isServer, String address) {
+    private void showMessageNotification(boolean isServer, String address) {
         Notification.Builder builder = new Notification.Builder(this);
         builder.setSmallIcon(R.mipmap.ic_launcher);
         builder.setContentTitle("Wifi P2P");
-        builder.setContentText(isServer ? "Server running at" : "Client connecting to" + address);
+        builder.setContentText(isServer ? "Server running" : "Client connected to " + address);
         Notification notification = builder.getNotification();
         this.notificationManager.notify(0, notification);
     }
 
     private void stopNotification() {
         this.notificationManager.cancelAll();
+    }
+
+    private void receiveMessage(final String message) {
+        Intent chatIntent = new Intent(this, ChatActivity.class);
+        chatIntent.putExtra("MESSAGE", message);
+        startActivity(chatIntent);
     }
 }

@@ -19,6 +19,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.lang.reflect.Array;
@@ -28,60 +29,37 @@ import java.util.Iterator;
 
 public class MainActivity extends AppCompatActivity implements WifiP2pManager.PeerListListener, WifiP2pManager.ConnectionInfoListener {
 
+    private WifiP2pHandler wifiP2pHandler;
+
+    private TextView lblInfo;
     private Button btnSearchDevices;
     private ListView listDevices;
-
-    private WifiP2pManager p2pManager;
-    private WifiP2pManager.Channel p2pChannel;
-
-    private final IntentFilter p2pFilter = new IntentFilter();
-    private WifiP2pReceiver p2pReceiver;
+    private Button btnTest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        p2pManager = (WifiP2pManager) MainActivity.this.getSystemService(Context.WIFI_P2P_SERVICE);
-        p2pChannel = p2pManager.initialize(this, getMainLooper(), null);
+        this.wifiP2pHandler = WifiP2pHandler.Single(this);
 
-        this.p2pFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-        this.p2pFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-
+        this.lblInfo = (TextView)(findViewById(R.id.lblInfo));
         this.btnSearchDevices = (Button)(findViewById(R.id.btnSearch));
         this.listDevices = (ListView)(findViewById(R.id.listDevices));
+        this.btnTest = (Button)(findViewById(R.id.btnTest));
 
         this.btnSearchDevices.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MainActivity.this.p2pManager.discoverPeers(MainActivity.this.p2pChannel, new WifiP2pManager.ActionListener() {
+                wifiP2pHandler.Manager.discoverPeers(wifiP2pHandler.Channel, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
                         Toast.makeText(MainActivity.this, "Started P2P search ...", Toast.LENGTH_SHORT).show();
                     }
+
                     @Override
                     public void onFailure(int reason) {
                         Toast.makeText(MainActivity.this, "P2P search failed with code " + String.valueOf(reason), Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-        });
-
-        this.listDevices.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                WifiP2pDevice device = MainActivity.this.PeerDevices[position];
-                WifiP2pConfig config = new WifiP2pConfig();
-                config.deviceAddress = device.deviceAddress;
-                config.wps.setup = WpsInfo.PBC;
-                MainActivity.this.p2pManager.connect(MainActivity.this.p2pChannel, config, new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        Toast.makeText(MainActivity.this, "Starting P2P connection ...", Toast.LENGTH_SHORT).show();
-                    }
-                    @Override
-                    public void onFailure(int reason) {
-                        Toast.makeText(MainActivity.this, "P2P connection failed with code " + String.valueOf(reason), Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -91,14 +69,11 @@ public class MainActivity extends AppCompatActivity implements WifiP2pManager.Pe
     @Override
     protected void onResume() {
         super.onResume();
-        this.p2pReceiver = new WifiP2pReceiver();
-        this.registerReceiver(this.p2pReceiver, this.p2pFilter);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        this.unregisterReceiver(this.p2pReceiver);
     }
 
     private WifiP2pDevice[] PeerDevices = new WifiP2pDevice[0];
@@ -117,39 +92,21 @@ public class MainActivity extends AppCompatActivity implements WifiP2pManager.Pe
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
-        if (info.groupFormed) {
-            String hostAddress = info.groupOwnerAddress.getHostAddress();
-            if (info.isGroupOwner) {
-                Intent startService = new Intent(this, ConnectionService.class);
-                startService.putExtra("CONN_ADDRESS", hostAddress);
-                startService.putExtra("CONN_IS_SERVER", true);
-                startService(startService);
-            } else {
-                Intent startService = new Intent(this, ConnectionService.class);
-                startService.putExtra("CONN_ADDRESS", hostAddress);
-                startService.putExtra("CONN_IS_SERVER", false);
-                startService(startService);
-            }
+        String hostAddress = info.groupOwnerAddress.getHostAddress();
+        this.lblInfo.setText(generateInfo(info.groupFormed, info.isGroupOwner, hostAddress));
+        Intent serviceIntent = new Intent(this, ConnectionService.class);
+        serviceIntent.putExtra("ACTION", "START");
+        serviceIntent.putExtra("IS_SERVER", info.isGroupOwner);
+        if (!info.isGroupOwner) {
+            serviceIntent.putExtra("IP", hostAddress);
         }
+        startService(serviceIntent);
     }
 
-    private class WifiP2pReceiver extends BroadcastReceiver {
+    private String generateInfo(boolean groupFormed, boolean groupOwner, String ip) {
+        return "Is group formed? " + String.valueOf(groupFormed) +
+                "\nAm i group owner? " + String.valueOf(groupOwner) +
+                "\nGroup owner ip: " + ip;
+    }
 
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            switch (intent.getAction()) {
-                case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
-                    if (MainActivity.this.p2pManager != null) {
-                        MainActivity.this.p2pManager.requestPeers(MainActivity.this.p2pChannel, MainActivity.this);
-                    }
-                    break;
-                case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
-                    NetworkInfo networkInfo = (NetworkInfo) intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
-                    if (networkInfo.isConnected() && MainActivity.this.p2pManager != null) {
-                        MainActivity.this.p2pManager.requestConnectionInfo(MainActivity.this.p2pChannel, MainActivity.this);
-                    }
-                    break;
-            }
-        }
-    };
 }
