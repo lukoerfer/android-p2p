@@ -1,4 +1,4 @@
-package de.lukaskoerfer.androidp2p;
+package de.lukaskoerfer.p2pchat;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

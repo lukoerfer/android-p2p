@@ -1,4 +1,4 @@
-package de.lukaskoerfer.androidp2p;
+package de.lukaskoerfer.p2pchat;
 
 import android.content.Context;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -9,15 +9,6 @@ import android.os.Looper;
  */
 public class WifiP2pHandler {
 
-    // Singleton
-    private static WifiP2pHandler _Single;
-    public static WifiP2pHandler Single(Context context) {
-        if (WifiP2pHandler._Single == null) {
-            WifiP2pHandler._Single = new WifiP2pHandler(context);
-        }
-        return WifiP2pHandler._Single;
-    }
-
     public WifiP2pManager Manager;
     public WifiP2pManager.Channel Channel;
 
@@ -25,4 +16,5 @@ public class WifiP2pHandler {
         this.Manager = (WifiP2pManager) context.getSystemService(Context.WIFI_P2P_SERVICE);
         this.Channel = this.Manager.initialize(context, Looper.getMainLooper(), null);
     }
+
 }

@@ -4,25 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="de.lukaskoerfer.androidp2p.MainActivity">
-
-    <TextView
-        android:id="@+id/lblInfo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp" />
+    android:layout_margin="5dp"
+    tools:context="de.lukaskoerfer.p2pchat.PeerActivity">
 
     <Button
         android:id="@+id/btnSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Search devices" />
-
-    <Button
-        android:id="@+id/btnTest"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Send message" />
+        android:text="Discover peers" />
 
     <ListView
         android:id="@+id/listDevices"
