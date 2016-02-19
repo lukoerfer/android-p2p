@@ -17,6 +17,33 @@ public class ChatServer extends ChatConnection {
 
     public ChatServer(ReceiveCallback callback) {
         super(callback);
+
+    }
+
+    private void startServer() {
+
+    }
+
+    private Runnable ServerLoop = new Runnable() {
+
+        @Override
+        public void run() {
+
+        }
+    };
+
+    private class ClientLoop implements Runnable {
+
+        private Socket socket;
+
+        public ClientLoop(Socket client) {
+            this.socket = client;
+        }
+
+        @Override
+        public void run() {
+
+        }
     }
 
     @Override
@@ -24,64 +51,9 @@ public class ChatServer extends ChatConnection {
 
     }
 
-    /*
+    @Override
+    public void Stop() {
 
-    private Thread mainThread;
-    private Socket mainSocket;
-
-    private List<Thread> clientThreads;
-    private List<Socket> clientSockets;
-
-    private void openServer() {
-        this.mainThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ServerSocket serverSocket = new ServerSocket(8000);
-                    while (true) {
-                        final Socket clientSocket = serverSocket.accept();
-                        ChatService.this.clientSockets.add(clientSocket);
-                        Thread clientThread = new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                                    while (true) {
-                                        //receiveMessage(in.readLine());
-                                    }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        });
-                        clientThread.start();
-                        ChatService.this.clientThreads.add(clientThread);
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        });
-        this.mainThread.start();
     }
-
-    private void connectToServer(final String address) {
-        this.mainThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Socket clientSocket = new Socket(address, 8000);
-                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                    while (true) {
-                        //receiveMessage(in.readLine());
-                    }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        });
-        this.mainThread.start();
-
-    }*/
 
 }

@@ -7,10 +7,6 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Binder;
 import android.os.IBinder;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.List;
 
 public class ChatService extends Service implements WifiP2pManager.ConnectionInfoListener {
@@ -19,8 +15,12 @@ public class ChatService extends Service implements WifiP2pManager.ConnectionInf
 
     private ChatConnection Connection;
 
-    public ChatService() {
+    private WifiP2pInfo PrevP2pInfo;
 
+    public ChatService() {
+        this.PrevP2pInfo = new WifiP2pInfo();
+        this.PrevP2pInfo.groupFormed = false;
+        this.PrevP2pInfo.isGroupOwner = false;
     }
 
     @Override
@@ -31,6 +31,28 @@ public class ChatService extends Service implements WifiP2pManager.ConnectionInf
     }
 
     @Override
+    public void onConnectionInfoAvailable(WifiP2pInfo p2pInfo) {
+        if (!areInfosEquals(this.PrevP2pInfo, p2pInfo)) {
+            // stop possible previous connection
+            if (this.Connection != null) {
+                this.Connection.Stop();
+            }
+            if (p2pInfo.groupFormed) {
+                // start new connection
+                if (p2pInfo.isGroupOwner) {
+                    this.Connection = new ChatServer(this.Receiver);
+                } else {
+                    this.Connection = new ChatClient(p2pInfo.groupOwnerAddress, this.Receiver);
+                }
+            }
+        }
+    }
+
+    private static boolean areInfosEquals(WifiP2pInfo info1, WifiP2pInfo info2) {
+        return (info1.groupFormed == info2.groupFormed) && (info1.isGroupOwner == info2.isGroupOwner) && (info1.groupOwnerAddress.equals(info2.groupOwnerAddress));
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         return this.ServiceBinder;
     }
@@ -38,6 +60,10 @@ public class ChatService extends Service implements WifiP2pManager.ConnectionInf
     private final IBinder ServiceBinder = new ChatBinder();
 
     public class ChatBinder extends Binder {
+
+        public boolean IsConnected() {
+            return false;
+        }
 
         public List<ChatMessage> CheckoutMessages() {
             return null;
@@ -51,11 +77,6 @@ public class ChatService extends Service implements WifiP2pManager.ConnectionInf
                 return false;
             }
         }
-    }
-
-    @Override
-    public void onConnectionInfoAvailable(WifiP2pInfo info) {
-
     }
 
     private ReceiveCallback Receiver = new ReceiveCallback() {
