@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">P2P Chat</string>
+
+    <string-array name="error_messages">
+        <item>No peers connected</item>
+        <item>Wifi direct disabled</item>
+    </string-array>
 </resources>

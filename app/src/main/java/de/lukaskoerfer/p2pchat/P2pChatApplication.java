@@ -9,15 +9,10 @@ public class P2pChatApplication extends Application {
 
     public WifiP2pHandler P2pHandler;
 
-    public boolean PeerActivityOpen;
-    public boolean ChatActivityOpen;
-
     @Override
     public void onCreate() {
         super.onCreate();
         this.P2pHandler = new WifiP2pHandler(this);
-        this.PeerActivityOpen = false;
-        this.ChatActivityOpen = false;
     }
 
 

@@ -35,13 +35,7 @@
         </activity>
 
         <service
-            android:name="de.lukaskoerfer.p2pchat.PeerService"
-            android:enabled="true"
-            android:exported="true" >
-        </service>
-
-        <service
-            android:name="de.lukaskoerfer.p2pchat.ChatService"
+            android:name=".P2pChatService"
             android:enabled="true"
             android:exported="true" >
         </service>
@@ -51,6 +45,7 @@
             android:enabled="true"
             android:exported="true" >
             <intent-filter>
+                <action android:name="android.net.wifi.p2p.STATE_CHANGED" />
                 <action android:name="android.net.wifi.p2p.PEERS_CHANGED" />
                 <action android:name="android.net.wifi.p2p.CONNECTION_STATE_CHANGE" />
             </intent-filter>
